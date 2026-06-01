@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rei da Roça</title>
+  
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Passion+One:wght@400;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --verde-escuro: #1a2f12;
+      --verde-medio: #2e4a1f;
+      --verde-claro: #3a5f2f;
+      --verde-hover: #4a7043;
+      --amarelo: #ffcc00;
+      --amarelo-escuro: #cc9900;
+      --fundo-card: #1e2f1b;
+      --fundo-card2: #162410;
+      --text-secondary: #a0b896;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Nunito', sans-serif; background: linear-gradient(160deg, #2e4a1f 0%, #1a2f12 60%, #0d1a08 100%); color: #fff; min-height: 100vh; }
+
+    .login-box {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      background: var(--fundo-card); padding: 45px 35px; border-radius: 24px; width: 390px;
+      text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,204,0,0.1); z-index: 1000;
+    }
+    .login-box h1 { font-family: 'Passion One', cursive; color: var(--amarelo); font-size: 38px; margin-bottom: 4px; letter-spacing: 2px; }
+    .login-box h2 { color: var(--text-secondary); margin-bottom: 28px; font-size: 18px; font-weight: 600; }
+    .login-box input { width: 100%; padding: 14px 18px; margin: 8px 0; border: 2px solid rgba(255,255,255,0.08); border-radius: 12px; font-size: 16px; font-family: 'Nunito', sans-serif; background: rgba(255,255,255,0.05); color: #fff; transition: border 0.2s; }
+    .login-box input:focus { outline: none; border-color: var(--amarelo); }
+    .login-box input::placeholder { color: #6a7a62; }
+    .btn-principal { background: var(--amarelo); color: #1a1a00; border: none; padding: 15px; font-size: 18px; font-weight: 700; font-family: 'Nunito', sans-serif; border-radius: 12px; width: 100%; cursor: pointer; margin-top: 10px; transition: all 0.2s; }
+    .btn-principal:hover { background: #ffe033; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255,204,0,0.3); }
+    .toggle { color: var(--amarelo); margin-top: 18px; cursor: pointer; font-size: 15px; opacity: 0.8; }
+    .toggle:hover { opacity: 1; }
+
+    .game-container { display: none; }
+    header {
+      background: var(--fundo-card2); padding: 16px 30px;
+      border-bottom: 3px solid var(--amarelo);
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+    }
+    .header-title { font-family: 'Passion One', cursive; font-size: 28px; color: var(--amarelo); letter-spacing: 2px; }
+    .header-right { display: flex; align-items: center; gap: 12px; }
+    .btn-ranking {
+      background: linear-gradient(135deg, #b8860b, var(--amarelo));
+      color: #1a1a00; border: none; padding: 10px 20px; font-size: 15px;
+      font-weight: 700; font-family: 'Nunito', sans-serif; border-radius: 10px; cursor: pointer;
+      transition: all 0.2s; display: flex; align-items: center; gap: 6px;
+    }
+    .btn-ranking:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(255,204,0,0.4); }
+
+    .resources {
+      background: rgba(0,0,0,0.4); padding: 14px 20px;
+      display: flex; justify-content: center; gap: 40px; flex-wrap: wrap;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .resource-item { text-align: center; }
+    .resource-label { font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; }
+    .resource-value { font-size: 26px; font-weight: 700; color: #fff; font-family: 'Passion One', cursive; letter-spacing: 1px; }
+    .resource-value.amarelo { color: var(--amarelo); }
+    #statusSalvar { font-size: 12px; color: #5a7a52; text-align: center; padding: 4px; }
+
+    .game { display: flex; max-width: 1200px; margin: 24px auto; gap: 20px; padding: 0 20px; }
+    .farm { flex: 2; background: var(--verde-claro); border-radius: 20px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center; }
+    .farm h2 { font-family: 'Passion One', cursive; font-size: 22px; letter-spacing: 1px; color: #c8e8b0; margin-bottom: 10px; }
+    #plant { width: 220px; height: 220px; margin: 16px auto; font-size: 100px; line-height: 220px; cursor: pointer; transition: all 0.1s; user-select: none; filter: drop-shadow(0 8px 16px rgba(0,0,0,0.4)); }
+    #plant:active { transform: scale(0.82); }
+    #plant:hover { transform: scale(1.05); }
+    .farm p { color: #a0c890; font-size: 14px; margin-bottom: 14px; }
+    .btn-vender { background: linear-gradient(135deg, #2a7a1a, #3aaa2a); color: #fff; border: none; padding: 14px 28px; font-size: 16px; font-weight: 700; font-family: 'Nunito', sans-serif; border-radius: 12px; cursor: pointer; transition: all 0.2s; }
+    .btn-vender:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(58,170,42,0.4); }
+
+    .shop { flex: 1; background: var(--fundo-card); border-radius: 20px; padding: 22px; }
+    .shop h2 { font-family: 'Passion One', cursive; font-size: 20px; letter-spacing: 1px; color: var(--amarelo); margin-bottom: 14px; }
+    .upgrade { background: rgba(255,255,255,0.04); margin: 10px 0; padding: 14px 16px; border-radius: 12px; cursor: pointer; transition: all 0.25s; border: 1px solid rgba(255,255,255,0.06); }
+    .upgrade:hover { background: rgba(255,255,255,0.09); transform: translateX(6px); border-color: rgba(255,204,0,0.3); }
+    .upgrade.nao-pode { opacity: 0.4; cursor: not-allowed; }
+    .upgrade.nao-pode:hover { transform: none; }
+    .upgrade-nome { font-weight: 700; font-size: 14px; }
+    .upgrade-info { display: flex; justify-content: space-between; margin-top: 4px; font-size: 13px; }
+
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.85); z-index: 2000;
+      align-items: center; justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+    .modal-overlay.aberto { display: flex; }
+    .modal {
+      background: var(--fundo-card2); border-radius: 24px; padding: 36px;
+      width: 480px; max-width: 95vw; max-height: 85vh; overflow-y: auto;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,204,0,0.15);
+      position: relative;
+    }
+    .modal h2 { font-family: 'Passion One', cursive; font-size: 30px; color: var(--amarelo); text-align: center; margin-bottom: 6px; letter-spacing: 2px; }
+    .modal-sub { color: var(--text-secondary); text-align: center; font-size: 13px; margin-bottom: 24px; }
+    .modal-fechar { position: absolute; top: 16px; right: 20px; background: none; border: none; color: #6a7a62; font-size: 24px; cursor: pointer; transition: color 0.2s; }
+    .modal-fechar:hover { color: #fff; }
+
+    .ranking-item {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 16px; border-radius: 14px; margin-bottom: 8px;
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);
+      transition: all 0.2s;
+    }
+    .ranking-item.eu { background: rgba(255,204,0,0.08); border-color: rgba(255,204,0,0.3); }
+    .ranking-item.top1 { background: linear-gradient(135deg, rgba(255,215,0,0.12), rgba(255,180,0,0.05)); border-color: rgba(255,215,0,0.4); }
+    .ranking-item.top2 { background: rgba(192,192,192,0.07); border-color: rgba(192,192,192,0.25); }
+    .ranking-item.top3 { background: rgba(205,127,50,0.08); border-color: rgba(205,127,50,0.25); }
+
+    .rank-pos { font-family: 'Passion One', cursive; font-size: 22px; width: 36px; text-align: center; flex-shrink: 0; }
+    .rank-pos.p1 { color: #ffd700; }
+    .rank-pos.p2 { color: #c0c0c0; }
+    .rank-pos.p3 { color: #cd7f32; }
+    .rank-pos.pn { color: #6a7a62; }
+
+    .rank-info { flex: 1; }
+    .rank-nome { font-weight: 700; font-size: 16px; }
+    .rank-nome .tag-eu { font-size: 11px; background: var(--amarelo); color: #1a1a00; border-radius: 6px; padding: 1px 6px; margin-left: 6px; font-weight: 700; }
+    .rank-stats { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+    .rank-dinheiro { font-family: 'Passion One', cursive; font-size: 20px; color: var(--amarelo); text-align: right; }
+    .ranking-divider { border: none; border-top: 1px dashed rgba(255,255,255,0.08); margin: 12px 0; }
+
+    .rank-minha-pos {
+      background: rgba(255,204,0,0.06); border: 1px solid rgba(255,204,0,0.2);
+      border-radius: 12px; padding: 12px 16px; margin-top: 14px; text-align: center;
+      font-size: 14px; color: var(--text-secondary);
+    }
+    .rank-minha-pos strong { color: var(--amarelo); }
+    .ranking-loading { text-align: center; padding: 40px; color: var(--text-secondary); font-size: 16px; }
+
+    @media (max-width: 700px) {
+      .game { flex-direction: column; }
+      .resources { gap: 20px; }
+      header { justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="loginScreen" class="login-box">
+    <h1>🌱 REI DA ROÇA</h1>
+    <h2 id="titulo">Entrar na Conta</h2>
+    <input type="text" id="username" placeholder="Nome de usuário" />
+    <input type="password" id="password" placeholder="Senha" />
+    <button class="btn-principal" id="btnAcao" onclick="fazerLogin()">Entrar</button>
+    <div class="toggle" onclick="toggleModo()">Criar Nova Conta</div>
+    <p id="mensagem" style="margin-top: 15px; min-height: 24px; font-size:14px;"></p>
+  </div>
+
+  <div id="gameContainer" class="game-container">
+    <header>
+      <div class="header-title">🌱 REI DA ROÇA</div>
+      <div class="header-right">
+        <span style="color:var(--text-secondary); font-size:15px;">Olá, <strong style="color:#fff" id="nomeJogador"></strong></span>
+        <button class="btn-ranking" onclick="abrirRanking()">🏆 Top Global</button>
+      </div>
+    </header>
+
+    <div class="resources">
+      <div class="resource-item">
+        <div class="resource-label">🌿 Mandioca</div>
+        <div class="resource-value" id="mandioca">0</div>
+      </div>
+      <div class="resource-item">
+        <div class="resource-label">💰 Dinheiro</div>
+        <div class="resource-value amarelo">R$ <span id="dinheiro">0</span></div>
+      </div>
+      <div class="resource-item">
+        <div class="resource-label">⚡ Por segundo</div>
+        <div class="resource-value" id="pps">0.0</div>
+      </div>
+    </div>
+    <div id="statusSalvar">💾 Pronto</div>
+
+    <div class="game">
+      <div class="farm">
+        <h2>Sua Roça</h2>
+        <div id="plant" onclick="colher()">🌿</div>
+        <p>Clique para colher mandioca!</p>
+        <button class="btn-vender" onclick="vender()">Vender 10 Mandiocas — R$ 8</button>
+      </div>
+
+      <div class="shop">
+        <h2>🏪 Loja do Interior</h2>
+        <div id="shop"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modalRanking">
+    <div class="modal">
+      <button class="modal-fechar" onclick="fecharRanking()">✕</button>
+      <h2>🏆 TOP GLOBAL</h2>
+      <p class="modal-sub">Os fazendeiros mais ricos do Rei da Roça</p>
+      <div id="rankingConteudo"><div class="ranking-loading">Carregando ranking... 🌾</div></div>
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyA-e4tkwKZC9YqhnbgzlrqoxifeGb-P3Uw",
+      authDomain: "jogo-da-roca.firebaseapp.com",
+      projectId: "jogo-da-roca",
+      storageBucket: "jogo-da-roca.firebasestorage.app",
+      messagingSenderId: "252246377723",
+      appId: "1:252246377723:web:2bdf136186e2aaa1585c5e"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    let usuarioAtual = null;
+    let nomeAtual = "";
+    let mandioca = 0, dinheiro = 0, pps = 0;
+    let modoLogin = true;
+
+    // ==================== ANTI-AUTOCLICK ====================
+    // Técnica 1: exige movimento do mouse antes de cada clique
+    let mouseMoved = false;
+    let lastMouseX = 0, lastMouseY = 0;
+
+    // Técnica 2: detecta timing regular (bot)
+    let intervalos = [];
+    let ultimoClique = 0;
+    let bloqueadoAte = 0;
+
+    // Técnica 4: cooldown mínimo entre cliques (sem punição progressiva)
+    // Humano consegue ~6 cliques/segundo = 166ms entre cliques
+    // Limitamos a 8 cliques/segundo = 125ms mínimo — confortável para humanos
+    const COOLDOWN_MS = 125;
+
+    // Controle separado para o botão Vender
+    let ultimoVender = 0;
+    const COOLDOWN_VENDER = 600; // mínimo 600ms entre vendas (não dá pra vender 10 a cada 100ms)
+
+    document.addEventListener('mousemove', (e) => {
+      if (Math.abs(e.clientX - lastMouseX) > 2 || Math.abs(e.clientY - lastMouseY) > 2) {
+        mouseMoved = true;
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
+      }
+    });
+
+    const upgrades = [
+      {id:1, nome:"🌱 Mais Pés de Mandioca", preco:25,  inc:2,   qtd:0},
+      {id:2, nome:"⛏️ Enxada Melhorada",     preco:80,  inc:6,   qtd:0},
+      {id:3, nome:"💧 Irrigação",             preco:200, inc:15,  qtd:0},
+      {id:4, nome:"🚜 Trator",               preco:550, inc:40,  qtd:0},
+      {id:5, nome:"👨‍🌾 Peão",               preco:950, inc:70,  qtd:0},
+      {id:6, nome:"🚛 Caminhão",             preco:2500, inc:180, qtd:0},
+      {id:7, nome:"🐔 Galinheiro",           preco:4200, inc:320, qtd:0}
+    ];
+
+    // ==================== AUTH ====================
+
+    async function fazerLogin() {
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value.trim();
+      if (!username || !password) { mostrarMsg("Preencha todos os campos!", "red"); return; }
+      mostrarMsg("Entrando...", "#ffcc00");
+      try {
+        const userCred = await auth.signInWithEmailAndPassword(username + "@reidaroca.com", password);
+        usuarioAtual = userCred.user.uid;
+        nomeAtual = username;
+        await iniciarJogo();
+      } catch (e) {
+        mostrarMsg("Usuário ou senha incorretos!", "red");
+      }
+    }
+
+    async function cadastrarConta() {
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value.trim();
+      if (!username || !password) { mostrarMsg("Preencha todos os campos!", "red"); return; }
+      if (password.length < 6) { mostrarMsg("Senha mínimo 6 caracteres!", "red"); return; }
+      mostrarMsg("Criando conta...", "#ffcc00");
+      try {
+        const userCred = await auth.createUserWithEmailAndPassword(username + "@reidaroca.com", password);
+        usuarioAtual = userCred.user.uid;
+        nomeAtual = username;
+        await db.collection("jogadores").doc(usuarioAtual).set({
+          username: username, mandioca: 0, dinheiro: 0, pps: 0, upgrades: {}
+        });
+        mostrarMsg("Conta criada! Entrando...", "lime");
+        setTimeout(async () => await iniciarJogo(), 1000);
+      } catch (e) {
+        mostrarMsg("Erro: " + traduzirErro(e.code), "red");
+      }
+    }
+
+    function toggleModo() {
+      modoLogin = !modoLogin;
+      document.getElementById("titulo").textContent = modoLogin ? "Entrar na Conta" : "Criar Nova Conta";
+      document.getElementById("btnAcao").textContent = modoLogin ? "Entrar" : "Cadastrar";
+      document.getElementById("btnAcao").setAttribute("onclick", modoLogin ? "fazerLogin()" : "cadastrarConta()");
+      document.querySelector(".toggle").textContent = modoLogin ? "Criar Nova Conta" : "Já tenho conta";
+      document.getElementById("mensagem").textContent = "";
+    }
+
+    function mostrarMsg(texto, cor) {
+      const m = document.getElementById("mensagem");
+      m.style.color = cor; m.textContent = texto;
+    }
+
+    function traduzirErro(code) {
+      return {"auth/email-already-in-use":"Nome já existe!","auth/weak-password":"Senha fraca (mín. 6 chars)","auth/invalid-email":"Nome inválido"}[code] || "Erro desconhecido";
+    }
+
+    // ==================== JOGO ====================
+
+    async function iniciarJogo() {
+      document.getElementById("loginScreen").style.display = "none";
+      document.getElementById("gameContainer").style.display = "block";
+      document.getElementById("nomeJogador").textContent = nomeAtual;
+      await carregarProgresso();
+    }
+
+    // ==================== SALVAMENTO ====================
+
+    async function carregarProgresso() {
+      try {
+        const doc = await db.collection("jogadores").doc(usuarioAtual).get();
+        if (!doc.exists) {
+          await db.collection("jogadores").doc(usuarioAtual).set({ username: nomeAtual, mandioca: 0, dinheiro: 0, pps: 0, upgrades: {} });
+          atualizar(); return;
+        }
+        const data = doc.data();
+        mandioca = data.mandioca || 0;
+        dinheiro = data.dinheiro || 0;
+        const upgradesSalvos = data.upgrades || {};
+        upgrades.forEach(up => {
+          if (Array.isArray(upgradesSalvos)) {
+            const enc = upgradesSalvos.find(u => u.id === up.id);
+            up.qtd = enc ? (enc.qtd || 0) : 0;
+          } else {
+            up.qtd = upgradesSalvos[up.id] || 0;
+          }
+        });
+        pps = upgrades.reduce((t, up) => t + up.inc * up.qtd, 0);
+        atualizarStatus("✅ Progresso carregado!");
+        atualizar();
+      } catch (e) {
+        console.error("Erro ao carregar:", e);
+        atualizarStatus("⚠️ Erro ao carregar");
+      }
+    }
+
+    async function salvarProgresso() {
+      if (!usuarioAtual) return;
+      const upgradesObj = {};
+      upgrades.forEach(up => { upgradesObj[up.id] = up.qtd; });
+      const dados = {
+        username: nomeAtual,
+        mandioca: Math.floor(mandioca),
+        dinheiro: Math.floor(dinheiro),
+        pps: pps,
+        upgrades: upgradesObj,
+        ultimoSalvo: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      try {
+        await db.collection("jogadores").doc(usuarioAtual).set(dados, { merge: true });
+        atualizarStatus("💾 Salvo às " + new Date().toLocaleTimeString('pt-BR'));
+      } catch (e) {
+        atualizarStatus("⚠️ Falha ao salvar: " + e.message);
+      }
+    }
+
+    function atualizarStatus(msg) { document.getElementById("statusSalvar").textContent = msg; }
+
+    // ==================== LÓGICA ====================
+
+    function atualizar() {
+      document.getElementById("mandioca").textContent = formatarNumero(Math.floor(mandioca));
+      document.getElementById("dinheiro").textContent = formatarNumero(Math.floor(dinheiro));
+      document.getElementById("pps").textContent = pps.toFixed(1);
+      renderShop();
+    }
+
+    function formatarNumero(n) {
+      if (n >= 1000000) return (n/1000000).toFixed(1) + "M";
+      if (n >= 1000) return (n/1000).toFixed(1) + "K";
+      return n.toString();
+    }
+
+    function colher() {
+      const agora = Date.now();
+
+      // Verifica se está bloqueado (punição por bot detectado)
+      if (agora < bloqueadoAte) {
+        const restante = Math.ceil((bloqueadoAte - agora) / 1000);
+        atualizarStatus(`🚫 Bloqueado por ${restante}s`);
+        return;
+      }
+
+      // Técnica 4: cooldown fixo de 125ms — silencioso, sem mensagem irritante
+      if (agora - ultimoClique < COOLDOWN_MS) return;
+
+      // Técnica 1: exige movimento do mouse antes de cada clique
+      if (!mouseMoved) {
+        atualizarStatus("🖱️ Mova o mouse para colher!");
+        return;
+      }
+      mouseMoved = false;
+
+      // Técnica 2: detecta timing regular (bot)
+      if (ultimoClique > 0) {
+        const delta = agora - ultimoClique;
+        intervalos.push(delta);
+        if (intervalos.length > 10) intervalos.shift();
+
+        if (intervalos.length >= 8) {
+          const media = intervalos.reduce((a, b) => a + b) / intervalos.length;
+          const variancia = intervalos.reduce((s, v) => s + Math.pow(v - media, 2), 0) / intervalos.length;
+
+          // Variância < 10ms com cliques rápidos = bot
+          if (variancia < 10 && media < 200) {
+            bloqueadoAte = agora + 15000;
+            intervalos = [];
+            atualizarStatus("🚫 Padrão de bot detectado! Bloqueado por 15s.");
+            salvarProgresso();
+            return;
+          }
+        }
+      }
+
+      ultimoClique = agora;
+      mandioca += 1;
+      atualizar();
+    }
+
+    function vender() {
+      const agora = Date.now();
+
+      // Bloqueio global (se foi detectado bot no colher, bloqueia vender também)
+      if (agora < bloqueadoAte) {
+        const restante = Math.ceil((bloqueadoAte - agora) / 1000);
+        atualizarStatus(`🚫 Bloqueado por ${restante}s`);
+        return;
+      }
+
+      // Técnica 1: exige movimento do mouse antes de vender
+      if (!mouseMoved) {
+        atualizarStatus("🖱️ Mova o mouse para vender!");
+        return;
+      }
+      mouseMoved = false;
+
+      // Cooldown: não pode vender mais rápido que 1 vez a cada 600ms
+      if (agora - ultimoVender < COOLDOWN_VENDER) {
+        const restante = ((COOLDOWN_VENDER - (agora - ultimoVender)) / 1000).toFixed(1);
+        atualizarStatus(`⏳ Aguarde ${restante}s para vender novamente`);
+        return;
+      }
+
+      if (mandioca >= 10) {
+        ultimoVender = agora;
+        mandioca -= 10;
+        dinheiro += 8;
+        atualizar();
+      } else {
+        atualizarStatus("⚠️ Precisa de pelo menos 10 mandiocas!");
+      }
+    }
+
+    function comprar(id) {
+      const up = upgrades.find(u => u.id === id);
+      const preco = Math.floor(up.preco * Math.pow(1.18, up.qtd));
+      if (dinheiro >= preco) {
+        dinheiro -= preco; up.qtd++; pps += up.inc;
+        atualizar(); salvarProgresso();
+      }
+    }
+
+    function renderShop() {
+      let html = "";
+      upgrades.forEach(up => {
+        const preco = Math.floor(up.preco * Math.pow(1.18, up.qtd));
+        const pode = dinheiro >= preco;
+        html += `<div class="upgrade ${pode ? '' : 'nao-pode'}" onclick="comprar(${up.id})">
+          <div class="upgrade-nome">${up.nome} <span style="color:#6a7a82;font-weight:400">(${up.qtd}x)</span></div>
+          <div class="upgrade-info">
+            <span style="color:var(--amarelo);font-weight:700">R$ ${formatarNumero(preco)}</span>
+            <span style="color:#5a9a52">+${up.inc}/s cada</span>
+          </div>
+        </div>`;
+      });
+      document.getElementById("shop").innerHTML = html;
+    }
+
+    // ==================== RANKING ====================
+
+    async function abrirRanking() {
+      document.getElementById("modalRanking").classList.add("aberto");
+      document.getElementById("rankingConteudo").innerHTML = '<div class="ranking-loading">Carregando ranking... 🌾</div>';
+      await carregarRanking();
+    }
+
+    function fecharRanking() {
+      document.getElementById("modalRanking").classList.remove("aberto");
+    }
+
+    document.getElementById("modalRanking").addEventListener("click", function(e) {
+      if (e.target === this) fecharRanking();
+    });
+
+    async function carregarRanking() {
+      try {
+        const snapshot = await db.collection("jogadores")
+          .orderBy("dinheiro", "desc")
+          .limit(10)
+          .get();
+
+        if (snapshot.empty) {
+          document.getElementById("rankingConteudo").innerHTML = '<div class="ranking-loading">Nenhum fazendeiro ainda! 🌱</div>';
+          return;
+        }
+
+        const jogadores = [];
+        snapshot.forEach(doc => jogadores.push({ id: doc.id, ...doc.data() }));
+
+        let minhaPos = -1;
+        const estouNoTop = jogadores.some(j => j.id === usuarioAtual);
+
+        if (!estouNoTop) {
+          const acimaMim = await db.collection("jogadores")
+            .where("dinheiro", ">", Math.floor(dinheiro))
+            .get();
+          minhaPos = acimaMim.size + 1;
+        }
+
+        let html = "";
+        jogadores.forEach((j, i) => {
+          const pos = i + 1;
+          const sou = j.id === usuarioAtual;
+          const medalha = pos === 1 ? "🥇" : pos === 2 ? "🥈" : pos === 3 ? "🥉" : pos;
+          const classePos = pos === 1 ? "p1" : pos === 2 ? "p2" : pos === 3 ? "p3" : "pn";
+          const classeItem = pos === 1 ? "top1" : pos === 2 ? "top2" : pos === 3 ? "top3" : "";
+
+          html += `
+            <div class="ranking-item ${classeItem} ${sou ? 'eu' : ''}">
+              <div class="rank-pos ${classePos}">${medalha}</div>
+              <div class="rank-info">
+                <div class="rank-nome">
+                  ${j.username || "Fazendeiro"}
+                  ${sou ? '<span class="tag-eu">VOCÊ</span>' : ''}
+                </div>
+                <div class="rank-stats">⚡ ${(j.pps || 0).toFixed(1)}/s</div>
+              </div>
+              <div class="rank-dinheiro">R$ ${formatarNumero(j.dinheiro || 0)}</div>
+            </div>`;
+
+          if (pos === 3 && jogadores.length > 3) html += '<hr class="ranking-divider">';
+        });
+
+        if (!estouNoTop && minhaPos > 0) {
+          html += `
+            <div class="rank-minha-pos">
+              Sua posição atual: <strong>#${minhaPos}</strong> com <strong>R$ ${formatarNumero(Math.floor(dinheiro))}</strong><br>
+              <span style="font-size:12px">Continue jogando para entrar no top 10! 💪</span>
+            </div>`;
+        }
+
+        document.getElementById("rankingConteudo").innerHTML = html;
+
+      } catch (e) {
+        console.error("Erro no ranking:", e);
+        document.getElementById("rankingConteudo").innerHTML =
+          '<div class="ranking-loading">⚠️ Erro ao carregar. Verifique o índice do Firestore.</div>';
+      }
+    }
+
+    // ==================== TIMERS ====================
+
+    setInterval(salvarProgresso, 5000);
+    setInterval(() => { if (usuarioAtual) { mandioca += pps / 10; atualizar(); } }, 100);
+    window.addEventListener("beforeunload", () => salvarProgresso());
+    document.addEventListener("visibilitychange", () => { if (document.hidden) salvarProgresso(); });
+  </script>
+</body>
+</html>
